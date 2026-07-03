@@ -7,9 +7,8 @@ import json
 import re
 import pandas as pd
 import io
-from typing import List, Optional, Dict
-from dotenv import load_dotenv
 import shutil
+from typing import List, Optional, Dict
 from orchestrator import Orchestrator
 
 app = FastAPI(title="아트누리 병렬 크롤링 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
@@ -31,18 +30,11 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Access Password Protection (Configurable via Environment Variable)
-# Render Dashboard -> Environment Variables -> ACCESS_PASSWORD = [your_password]
-ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "artnuri123")
-
 # Active orchestrators keyed by client_id (Session Isolation)
 client_orchestrators: Dict[str, Orchestrator] = {}
 
 def get_orchestrator(client_id: str) -> Orchestrator:
-    # 1. Strict Regex Validation for Client ID to prevent Path Traversal
+    # Strict Regex Validation for Client ID to prevent Path Traversal
     if not client_id or not re.match(r"^[a-zA-Z0-9_-]{1,100}$", client_id):
         raise HTTPException(status_code=400, detail="올바르지 않은 클라이언트 세션 ID 형식입니다.")
     
@@ -53,11 +45,6 @@ def get_orchestrator(client_id: str) -> Orchestrator:
         client_orchestrators[client_id] = Orchestrator(data_dir=client_dir)
         
     return client_orchestrators[client_id]
-
-def verify_access(password: Optional[str]):
-    # Verify access password
-    if ACCESS_PASSWORD and password != ACCESS_PASSWORD:
-        raise HTTPException(status_code=401, detail="인증되지 않은 접근입니다. 비밀번호를 확인해 주세요.")
 
 # Background task wrapper
 async def run_orchestrator_task(client_id: str, keywords: List[str]):
@@ -71,10 +58,8 @@ async def run_orchestrator_task(client_id: str, keywords: List[str]):
 async def start_scrape(
     background_tasks: BackgroundTasks, 
     client_id: str = "default",
-    password: Optional[str] = Query(None),
     keywords: Optional[List[str]] = Query(None)
 ):
-    verify_access(password)
     orch = get_orchestrator(client_id)
     if orch.is_running:
         raise HTTPException(status_code=400, detail="이미 크롤링이 진행 중입니다.")
@@ -94,21 +79,18 @@ async def start_scrape(
     return {"status": "started", "keywords": clean_keywords}
 
 @app.get("/api/status")
-async def get_status(client_id: str = "default", password: Optional[str] = Query(None)):
-    verify_access(password)
+async def get_status(client_id: str = "default"):
     orch = get_orchestrator(client_id)
     return orch.get_status()
 
 @app.get("/api/results")
 async def get_results(
     client_id: str = "default",
-    password: Optional[str] = Query(None),
     keyword: Optional[str] = None,
     state: Optional[str] = None,
     host: Optional[str] = None,
     search: Optional[str] = None
 ):
-    verify_access(password)
     orch = get_orchestrator(client_id)
     results = orch.load_last_results()
     if not results:
@@ -141,8 +123,7 @@ async def get_results(
     return filtered
 
 @app.get("/api/export")
-async def export_results(format: str = "csv", client_id: str = "default", password: Optional[str] = Query(None)):
-    verify_access(password)
+async def export_results(format: str = "csv", client_id: str = "default"):
     orch = get_orchestrator(client_id)
     results = orch.load_last_results()
     if not results:
@@ -189,8 +170,7 @@ async def export_results(format: str = "csv", client_id: str = "default", passwo
         raise HTTPException(status_code=400, detail="지원하지 않는 형식입니다. (csv, json만 지원)")
 
 @app.delete("/api/results")
-async def delete_results(client_id: str = "default", password: Optional[str] = Query(None)):
-    verify_access(password)
+async def delete_results(client_id: str = "default"):
     orch = get_orchestrator(client_id)
     if orch.is_running:
         raise HTTPException(status_code=400, detail="수집이 진행 중일 때는 데이터를 삭제할 수 없습니다.")
