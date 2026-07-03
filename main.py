@@ -11,7 +11,7 @@ import shutil
 from typing import List, Optional, Dict
 from orchestrator import Orchestrator
 
-app = FastAPI(title="아트누리 병렬 크롤링 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
+app = FastAPI(title="아트누리 검색 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
 
 # Define directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
