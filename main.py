@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks, Query, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import os
 import json
 import re
@@ -12,15 +12,6 @@ from typing import List, Optional, Dict
 from orchestrator import Orchestrator
 
 app = FastAPI(title="아트누리 병렬 크롤링 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
-
-# Allow CORS for development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Define directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +25,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 client_orchestrators: Dict[str, Orchestrator] = {}
 
 def get_orchestrator(client_id: str) -> Orchestrator:
-    # Strict Regex Validation for Client ID to prevent Path Traversal
+    # 1. Strict Regex Validation for Client ID to prevent Path Traversal
     if not client_id or not re.match(r"^[a-zA-Z0-9_-]{1,100}$", client_id):
         raise HTTPException(status_code=400, detail="올바르지 않은 클라이언트 세션 ID 형식입니다.")
     
@@ -45,6 +36,33 @@ def get_orchestrator(client_id: str) -> Orchestrator:
         client_orchestrators[client_id] = Orchestrator(data_dir=client_dir)
         
     return client_orchestrators[client_id]
+
+def get_active_scrape_count() -> int:
+    # Count how many orchestrators are currently running (DoS prevention)
+    return sum(1 for orch in client_orchestrators.values() if orch.is_running)
+
+# 2. HTTP Security Middleware (Clickjacking, XSS, MIME Sniffing, CSP)
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        # Prevents the page from being framed by other sites (Clickjacking)
+        response.headers["X-Frame-Options"] = "DENY"
+        # Prevents browsers from guessing/sniffing MIME types
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # Enables modern browser built-in XSS filters
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Strict Content Security Policy (CSP) to restrict scripts, stylesheets, and resource locations
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+            "img-src 'self' data:; "
+            "connect-src 'self';"
+        )
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Background task wrapper
 async def run_orchestrator_task(client_id: str, keywords: List[str]):
@@ -63,8 +81,16 @@ async def start_scrape(
     orch = get_orchestrator(client_id)
     if orch.is_running:
         raise HTTPException(status_code=400, detail="이미 크롤링이 진행 중입니다.")
+        
+    # Global Rate Limiting / Abuse Prevention
+    # Limit maximum concurrent scrapers globally to 3 to prevent server overload
+    if get_active_scrape_count() >= 3:
+        raise HTTPException(
+            status_code=429, 
+            detail="현재 동시 검색 요청이 많아 서버가 혼잡합니다. 잠시 후 다시 시도해 주세요."
+        )
     
-    # Sanitize keywords to prevent any command injection or scripts
+    # Sanitize keywords to prevent script/payload injection
     clean_keywords = []
     if keywords:
         for kw in keywords:
