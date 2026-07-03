@@ -27,6 +27,7 @@ const statScraped = document.getElementById("stat-scraped");
 const globalProgressBar = document.getElementById("global-progress-bar");
 const agentsGrid = document.getElementById("agents-grid");
 const resultsTbody = document.getElementById("results-tbody");
+const passwordInput = document.getElementById("password-input");
 
 // Filter elements
 const searchInput = document.getElementById("search-input");
@@ -57,6 +58,10 @@ const modalContactPhone = document.getElementById("modal-contact-phone");
 
 // Page Initialization
 document.addEventListener("DOMContentLoaded", () => {
+    // Pre-fill password if saved
+    if (passwordInput) {
+        passwordInput.value = localStorage.getItem("artnuri_password") || "";
+    }
     // Initial fetch to load previous results if they exist
     fetchResults();
     
@@ -69,6 +74,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Local Filter listeners
     searchInput.addEventListener("input", filterAndRenderTable);
     keywordFilter.addEventListener("change", filterAndRenderTable);
+    if (passwordInput) {
+        passwordInput.addEventListener("input", () => {
+            // Fetch results when password is typed/changed
+            fetchResults();
+            checkStatus();
+        });
+    }
     
     // Status Tabs Filter listeners
     const tabButtons = document.querySelectorAll("#status-tabs .tab-btn");
@@ -105,6 +117,13 @@ async function handleStartScrape() {
     const keywords = kvsRaw.split(",").map(k => k.trim()).filter(k => k.length > 0);
     currentKeywords = keywords;
     
+    const pwd = passwordInput.value.trim();
+    if (!pwd) {
+        alert("접근 비밀번호를 입력해 주세요.");
+        return;
+    }
+    localStorage.setItem("artnuri_password", pwd);
+    
     // Update UI status to trigger start
     startBtn.disabled = true;
     startBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 수집기 기동 중...`;
@@ -112,9 +131,13 @@ async function handleStartScrape() {
     try {
         // Construct query parameters for FastAPI
         const queryParams = keywords.map(kw => `keywords=${encodeURIComponent(kw)}`).join("&");
-        const response = await fetch(`/api/scrape?client_id=${clientId}&${queryParams}`, {
+        const response = await fetch(`/api/scrape?client_id=${clientId}&password=${encodeURIComponent(pwd)}&${queryParams}`, {
             method: "POST"
         });
+        
+        if (response.status === 401) {
+            throw new Error("인증 실패: 비밀번호가 올바르지 않습니다.");
+        }
         
         if (!response.ok) {
             const err = await response.json();
@@ -150,8 +173,10 @@ function stopPolling() {
 
 // Check status API
 async function checkStatus() {
+    const pwd = passwordInput ? passwordInput.value.trim() : "";
+    if (!pwd) return; // Wait for password
     try {
-        const response = await fetch(`/api/status?client_id=${clientId}`);
+        const response = await fetch(`/api/status?client_id=${clientId}&password=${encodeURIComponent(pwd)}`);
         if (!response.ok) return;
         
         const data = await response.json();
@@ -303,8 +328,15 @@ function renderAgentCards(agents) {
 
 // Fetch results data from API
 async function fetchResults() {
+    const pwd = passwordInput ? passwordInput.value.trim() : "";
+    if (!pwd) return; // Wait for password
     try {
-        const response = await fetch(`/api/results?client_id=${clientId}`);
+        const response = await fetch(`/api/results?client_id=${clientId}&password=${encodeURIComponent(pwd)}`);
+        
+        if (response.status === 401) {
+            // Password might be incorrect or empty
+            return;
+        }
         if (!response.ok) return;
         
         scrapedResults = await response.json();
@@ -498,6 +530,11 @@ function closeModal() {
 
 // Export Data API trigger
 function exportData(format) {
+    const pwd = passwordInput ? passwordInput.value.trim() : "";
+    if (!pwd) {
+        alert("비밀번호를 입력해 주세요.");
+        return;
+    }
     // Navigate window directly to endpoint to trigger download
-    window.location.href = `/api/export?format=${format}&client_id=${clientId}`;
+    window.location.href = `/api/export?format=${format}&client_id=${clientId}&password=${encodeURIComponent(pwd)}`;
 }

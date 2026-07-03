@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
+import re
 import pandas as pd
 import io
 from typing import List, Optional, Dict
@@ -28,13 +29,17 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
+# Access Password Protection (Configurable via Environment Variable)
+# Render Dashboard -> Environment Variables -> ACCESS_PASSWORD = [your_password]
+ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "artnuri123")
+
 # Active orchestrators keyed by client_id (Session Isolation)
 client_orchestrators: Dict[str, Orchestrator] = {}
 
 def get_orchestrator(client_id: str) -> Orchestrator:
-    # Safety check for path traversal
-    if not client_id or "/" in client_id or "\\" in client_id or ".." in client_id:
-        client_id = "default"
+    # 1. Strict Regex Validation for Client ID to prevent Path Traversal
+    if not client_id or not re.match(r"^[a-zA-Z0-9_-]{1,100}$", client_id):
+        raise HTTPException(status_code=400, detail="올바르지 않은 클라이언트 세션 ID 형식입니다.")
     
     if client_id not in client_orchestrators:
         # Create client-specific data directory
@@ -44,40 +49,61 @@ def get_orchestrator(client_id: str) -> Orchestrator:
         
     return client_orchestrators[client_id]
 
+def verify_access(password: Optional[str]):
+    # Verify access password
+    if ACCESS_PASSWORD and password != ACCESS_PASSWORD:
+        raise HTTPException(status_code=401, detail="인증되지 않은 접근입니다. 비밀번호를 확인해 주세요.")
+
 # Background task wrapper
 async def run_orchestrator_task(client_id: str, keywords: List[str]):
-    orch = get_orchestrator(client_id)
-    await orch.start_scraping(keywords)
+    try:
+        orch = get_orchestrator(client_id)
+        await orch.start_scraping(keywords)
+    except Exception as e:
+        print(f"Orchestrator task error: {e}")
 
 @app.post("/api/scrape")
 async def start_scrape(
     background_tasks: BackgroundTasks, 
     client_id: str = "default",
+    password: Optional[str] = Query(None),
     keywords: Optional[List[str]] = Query(None)
 ):
+    verify_access(password)
     orch = get_orchestrator(client_id)
     if orch.is_running:
         raise HTTPException(status_code=400, detail="이미 크롤링이 진행 중입니다.")
     
-    if not keywords:
-        keywords = ["음악", "클래식", "작곡", "미디어아트"]
+    # Sanitize keywords to prevent any command injection or scripts
+    clean_keywords = []
+    if keywords:
+        for kw in keywords:
+            clean_kw = re.sub(r"[^\w\s가-힣-]", "", kw).strip()
+            if clean_kw:
+                clean_keywords.append(clean_kw)
+    
+    if not clean_keywords:
+        clean_keywords = ["음악", "클래식", "작곡", "미디어아트"]
         
-    background_tasks.add_task(run_orchestrator_task, client_id, keywords)
-    return {"status": "started", "keywords": keywords}
+    background_tasks.add_task(run_orchestrator_task, client_id, clean_keywords)
+    return {"status": "started", "keywords": clean_keywords}
 
 @app.get("/api/status")
-async def get_status(client_id: str = "default"):
+async def get_status(client_id: str = "default", password: Optional[str] = Query(None)):
+    verify_access(password)
     orch = get_orchestrator(client_id)
     return orch.get_status()
 
 @app.get("/api/results")
 async def get_results(
     client_id: str = "default",
+    password: Optional[str] = Query(None),
     keyword: Optional[str] = None,
     state: Optional[str] = None,
     host: Optional[str] = None,
     search: Optional[str] = None
 ):
+    verify_access(password)
     orch = get_orchestrator(client_id)
     results = orch.load_last_results()
     if not results:
@@ -97,9 +123,9 @@ async def get_results(
     if host:
         filtered = [x for x in filtered if host.lower() in x.get("host", "").lower()]
         
-    # General text search
+    # General text search (Sanitized query search)
     if search:
-        search_lower = search.lower()
+        search_lower = re.sub(r"[^\w\s가-힣-]", "", search).lower()
         filtered = [
             x for x in filtered 
             if search_lower in x.get("title", "").lower() 
@@ -110,7 +136,8 @@ async def get_results(
     return filtered
 
 @app.get("/api/export")
-async def export_results(format: str = "csv", client_id: str = "default"):
+async def export_results(format: str = "csv", client_id: str = "default", password: Optional[str] = Query(None)):
+    verify_access(password)
     orch = get_orchestrator(client_id)
     results = orch.load_last_results()
     if not results:
