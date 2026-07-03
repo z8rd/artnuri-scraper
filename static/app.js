@@ -240,7 +240,7 @@ function renderAgentCards(agents) {
         agentsGrid.innerHTML = `
             <div class="no-agents-placeholder">
                 <i class="fa-solid fa-robot"></i>
-                <p>수집을 시작하면 서브 에이전트들이 이곳에 활성화됩니다.</p>
+                <p>수집을 시작하면 검색 결과 카드들이 이곳에 활성화됩니다.</p>
             </div>
         `;
         return;

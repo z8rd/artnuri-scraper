@@ -39,9 +39,6 @@
             <section class="left-panel animate-slide-in">
                 <!-- Control Card -->
                 <div class="glass-card control-card">
-                    <h2 class="section-title"><i class="fa-solid fa-sliders"></i> 제어 콘솔</h2>
-                    <p class="section-desc">수집할 검색 키워드를 입력하고 오케스트레이터를 기동하세요.</p>
-                    
                     <div class="input-group">
                         <label for="keywords-input">검색 키워드 (쉼표 구분)</label>
                         <input type="text" id="keywords-input" value="음악, 클래식, 작곡, 미디어아트" placeholder="예: 음악, 미술, 연극">
@@ -78,14 +75,14 @@
             <!-- Right Panel: Sub-Agents Grid -->
             <section class="right-panel animate-slide-in delay-1">
                 <div class="glass-card agents-container">
-                    <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> 서브 에이전트 상태 (Sub-Agents Grid)</h2>
-                    <p class="section-desc">각 키워드에 대해 독립적으로 작동하는 수집기들의 실시간 로그입니다.</p>
+                    <h2 class="section-title"><i class="fa-solid fa-chart-line"></i> 검색 결과</h2>
+                    <p class="section-desc">각 키워드별 실시간 수집 상황 및 결과 요약입니다.</p>
                     
                     <div class="agents-grid" id="agents-grid">
                         <!-- Dynamic agent cards will be inserted here -->
                         <div class="no-agents-placeholder">
                             <i class="fa-solid fa-robot"></i>
-                            <p>수집을 시작하면 서브 에이전트들이 이곳에 활성화됩니다.</p>
+                            <p>수집을 시작하면 검색 결과 카드들이 이곳에 활성화됩니다.</p>
                         </div>
                     </div>
                 </div>
