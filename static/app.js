@@ -4,6 +4,7 @@ let scrapedResults = [];
 let pollInterval = null;
 let currentKeywords = ["음악", "클래식", "작곡", "미디어아트"];
 let selectedState = ""; // Current active status filter
+let deadlineSortOrder = "asc"; // Current deadline sort order ('asc' or 'desc')
 
 // Unique Client Session ID for Multi-user isolation
 const clientId = getOrCreateClientId();
@@ -28,6 +29,8 @@ const globalProgressBar = document.getElementById("global-progress-bar");
 const agentsGrid = document.getElementById("agents-grid");
 const resultsTbody = document.getElementById("results-tbody");
 const deleteDataBtn = document.getElementById("delete-data");
+const sortDeadlineCol = document.getElementById("sort-deadline-col");
+const sortIcon = document.getElementById("sort-icon");
 
 // Filter elements
 const searchInput = document.getElementById("search-input");
@@ -86,6 +89,26 @@ document.addEventListener("DOMContentLoaded", () => {
     // Export listeners
     if (exportExcelBtn) exportExcelBtn.addEventListener("click", exportData);
     if (deleteDataBtn) deleteDataBtn.addEventListener("click", handleDeleteData);
+    
+    // Sort Deadline Listener
+    if (sortDeadlineCol) {
+        sortDeadlineCol.addEventListener("click", () => {
+            if (deadlineSortOrder === "asc") {
+                deadlineSortOrder = "desc";
+                if (sortIcon) {
+                    sortIcon.className = "fa-solid fa-sort-down";
+                    sortIcon.style.color = "var(--primary)";
+                }
+            } else {
+                deadlineSortOrder = "asc";
+                if (sortIcon) {
+                    sortIcon.className = "fa-solid fa-sort-up";
+                    sortIcon.style.color = "var(--primary)";
+                }
+            }
+            filterAndRenderTable();
+        });
+    }
     
     // Modal Close
     modalCloseBtn.addEventListener("click", closeModal);
@@ -389,6 +412,19 @@ function filterAndRenderTable() {
         
         return true;
     });
+    
+    // Sort by deadline
+    if (deadlineSortOrder) {
+        filtered.sort((a, b) => {
+            const dateA = a.deadline || "9999-12-31";
+            const dateB = b.deadline || "9999-12-31";
+            if (deadlineSortOrder === "asc") {
+                return dateA.localeCompare(dateB);
+            } else {
+                return dateB.localeCompare(dateA);
+            }
+        });
+    }
     
     renderTableRows(filtered);
 }
