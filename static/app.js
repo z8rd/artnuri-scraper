@@ -34,8 +34,7 @@ const searchInput = document.getElementById("search-input");
 const keywordFilter = document.getElementById("keyword-filter");
 
 // Export elements
-const exportCsvBtn = document.getElementById("export-csv");
-const exportJsonBtn = document.getElementById("export-json");
+const exportExcelBtn = document.getElementById("export-excel");
 
 // Modal elements
 const detailsModal = document.getElementById("details-modal");
@@ -85,8 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     
     // Export listeners
-    exportCsvBtn.addEventListener("click", () => exportData("csv"));
-    exportJsonBtn.addEventListener("click", () => exportData("json"));
+    if (exportExcelBtn) exportExcelBtn.addEventListener("click", exportData);
     if (deleteDataBtn) deleteDataBtn.addEventListener("click", handleDeleteData);
     
     // Modal Close
@@ -329,12 +327,10 @@ async function fetchResults() {
         
         // Enable/Disable export buttons
         if (scrapedResults.length > 0) {
-            exportCsvBtn.disabled = false;
-            exportJsonBtn.disabled = false;
+            if (exportExcelBtn) exportExcelBtn.disabled = false;
             if (deleteDataBtn) deleteDataBtn.disabled = false;
         } else {
-            exportCsvBtn.disabled = true;
-            exportJsonBtn.disabled = true;
+            if (exportExcelBtn) exportExcelBtn.disabled = true;
             if (deleteDataBtn) deleteDataBtn.disabled = true;
         }
         
@@ -510,11 +506,9 @@ function closeModal() {
     detailsModal.classList.remove("open");
 }
 
-// Export Data API trigger
-function exportData(format) {
-    
-    // Navigate window directly to endpoint to trigger download
-    window.location.href = `/api/export?format=${format}&client_id=${clientId}`;
+// Export Data API trigger (Excel download)
+function exportData() {
+    window.location.href = `/api/export?client_id=${clientId}`;
 }
 
 
@@ -537,8 +531,7 @@ async function handleDeleteData() {
             scrapedResults = [];
             filterAndRenderTable();
             if (deleteDataBtn) deleteDataBtn.disabled = true;
-            exportCsvBtn.disabled = true;
-            exportJsonBtn.disabled = true;
+            if (exportExcelBtn) exportExcelBtn.disabled = true;
         } else {
             const err = await response.json();
             alert(`데이터 삭제 실패: ${err.detail || "오류"}`);

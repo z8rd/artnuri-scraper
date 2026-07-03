@@ -123,7 +123,7 @@ async def get_results(
     return filtered
 
 @app.get("/api/export")
-async def export_results(format: str = "csv", client_id: str = "default"):
+async def export_results(client_id: str = "default"):
     orch = get_orchestrator(client_id)
     results = orch.load_last_results()
     if not results:
@@ -142,32 +142,18 @@ async def export_results(format: str = "csv", client_id: str = "default"):
         
     df = pd.DataFrame(flat_results)
     
-    if format == "csv":
-        # Stream CSV in UTF-8-sig for Excel compatibility in Korean Windows
-        stream = io.StringIO()
-        df.to_csv(stream, index=False, encoding="utf-8-sig")
-        response = StreamingResponse(
-            iter([stream.getvalue()]),
-            media_type="text/csv"
-        )
-        response.headers["Content-Disposition"] = "attachment; filename=artnuri_scraped_results.csv"
-        return response
-        
-    elif format == "json":
-        # Stream JSON file
-        stream = io.BytesIO()
-        json_str = json.dumps(results, ensure_ascii=False, indent=2)
-        stream.write(json_str.encode('utf-8'))
-        stream.seek(0)
-        response = StreamingResponse(
-            stream,
-            media_type="application/json"
-        )
-        response.headers["Content-Disposition"] = "attachment; filename=artnuri_scraped_results.json"
-        return response
-        
-    else:
-        raise HTTPException(status_code=400, detail="지원하지 않는 형식입니다. (csv, json만 지원)")
+    # Write to Excel in memory using openpyxl
+    stream = io.BytesIO()
+    with pd.ExcelWriter(stream, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="지원사업 목록")
+    stream.seek(0)
+    
+    response = StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response.headers["Content-Disposition"] = "attachment; filename=artnuri_scraped_results.xlsx"
+    return response
 
 @app.delete("/api/results")
 async def delete_results(client_id: str = "default"):
