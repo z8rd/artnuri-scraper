@@ -644,6 +644,18 @@ tr:hover td {
     word-break: keep-all; /* Keep Korean words wrapped correctly */
 }
 
+.title-link {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+    display: inline-block;
+}
+
+.title-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
 /* Custom Table Badges - FIX WRAPPING */
 .badge {
     padding: 3px 8px;

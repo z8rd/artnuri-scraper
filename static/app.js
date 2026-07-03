@@ -467,7 +467,9 @@ function renderTableRows(items) {
                 <td><strong>${genreText}</strong></td>
                 <td>${kwBadges}</td>
                 <td>${stateBadgeHtml}</td>
-                <td class="table-title-cell" title="${item.title}">${item.title}</td>
+                <td class="table-title-cell" title="${item.title}">
+                    <a href="${item.original_url || '#'}" target="_blank" class="title-link">${item.title}</a>
+                </td>
                 <td>${item.host || item.source_site || "-"}</td>
                 <td style="font-family: var(--font-outfit);">${item.deadline || "-"}</td>
                 <td style="text-align: center;">
