@@ -202,7 +202,12 @@ async def delete_results(client_id: str = "default"):
 async def read_index():
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        response = FileResponse(index_path)
+        # Prevent any caching of the main page (highly critical for KakaoTalk in-app browser cache bypass)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
     return {"message": "Artnuri Scraper Service backend is running. Frontend static/index.html is missing."}
 
 # Mount static directory for CSS/JS
