@@ -134,7 +134,7 @@ async function handleStartScrape() {
     
     // Update UI status to trigger start
     startBtn.disabled = true;
-    startBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 수집기 기동 중...`;
+    startBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 검색기 기동 중...`;
     
     try {
         // Construct query parameters for FastAPI
@@ -195,7 +195,7 @@ async function checkStatus() {
 // Reset Start Button UI
 function resetStartButton() {
     startBtn.disabled = false;
-    startBtn.innerHTML = `<i class="fa-solid fa-play"></i> 병렬 수집 시작`;
+    startBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> 지원사업 검색`;
 }
 
 // Update UI elements based on API status response
@@ -220,7 +220,7 @@ function updateUI(data) {
     if (status === "수집 중") {
         isScraping = true;
         startBtn.disabled = true;
-        startBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 병렬 수집 중...`;
+        startBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 지원사업 검색 중...`;
         updateStatusBadge("running", "병렬 수집 진행 중");
         
         // Ensure polling is running
