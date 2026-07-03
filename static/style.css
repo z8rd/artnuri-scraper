@@ -910,3 +910,139 @@ tr:hover td {
         transform: translateY(0);
     }
 }
+
+/* ==========================================
+   Responsive Design (Mobile / Tablet Support)
+   ========================================== */
+
+/* 1. Desktop & Small Laptops */
+@media (max-width: 1200px) {
+    .app-container {
+        padding: 20px;
+        max-width: 100%;
+    }
+}
+
+/* 2. Tablets */
+@media (max-width: 992px) {
+    .app-main {
+        grid-template-columns: 1fr; /* Stack Left Panel and Right Panel vertically */
+        gap: 20px;
+    }
+    
+    .logo-icon-treble {
+        font-size: 32px !important;
+    }
+    
+    .logo-text h1 {
+        font-size: 22px !important;
+    }
+}
+
+/* 3. Small Tablets & Large Phones */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        padding: 20px 0;
+    }
+    
+    .global-status-badge {
+        align-self: flex-start;
+    }
+    
+    .glass-card {
+        padding: 20px; /* Compact padding for small screens */
+    }
+    
+    .data-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .export-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .export-actions .action-btn {
+        width: 100%;
+        justify-content: center;
+        margin: 0;
+        padding: 12px;
+    }
+    
+    .filters-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
+    
+    #keyword-filter {
+        width: 100%;
+    }
+    
+    /* Horizontal scrolling for tab buttons */
+    .status-tabs-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+    }
+    
+    #status-tabs {
+        width: max-content;
+        min-width: 100%;
+        justify-content: flex-start;
+        margin-bottom: 0;
+    }
+    
+    /* Modal responsive styling */
+    .modal-content {
+        width: 95%;
+        margin: 15% auto;
+        padding: 20px;
+    }
+    
+    .modal-info-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .modal-links-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .modal-link-btn {
+        width: 100%;
+    }
+}
+
+/* 4. Small Mobile Phones */
+@media (max-width: 576px) {
+    .logo-text h1 {
+        font-size: 18px !important;
+    }
+    
+    .logo-icon-treble {
+        font-size: 28px !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr; /* Stack stats vertically */
+        gap: 10px;
+    }
+    
+    .agents-grid {
+        grid-template-columns: 1fr; /* Stack agent result cards vertically */
+        gap: 15px;
+    }
+}
