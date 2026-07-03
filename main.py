@@ -8,6 +8,8 @@ import re
 import pandas as pd
 import io
 from typing import List, Optional, Dict
+from dotenv import load_dotenv
+import shutil
 from orchestrator import Orchestrator
 
 app = FastAPI(title="아트누리 병렬 크롤링 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
@@ -28,6 +30,9 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Access Password Protection (Configurable via Environment Variable)
 # Render Dashboard -> Environment Variables -> ACCESS_PASSWORD = [your_password]
@@ -182,6 +187,23 @@ async def export_results(format: str = "csv", client_id: str = "default", passwo
         
     else:
         raise HTTPException(status_code=400, detail="지원하지 않는 형식입니다. (csv, json만 지원)")
+
+@app.delete("/api/results")
+async def delete_results(client_id: str = "default", password: Optional[str] = Query(None)):
+    verify_access(password)
+    orch = get_orchestrator(client_id)
+    if orch.is_running:
+        raise HTTPException(status_code=400, detail="수집이 진행 중일 때는 데이터를 삭제할 수 없습니다.")
+    
+    client_dir = os.path.join(DATA_DIR, client_id)
+    if os.path.exists(client_dir):
+        shutil.rmtree(client_dir)
+        
+    # Reset in-memory results for this client
+    if client_id in client_orchestrators:
+        del client_orchestrators[client_id]
+        
+    return {"status": "deleted"}
 
 # Serve index.html directly on root
 @app.get("/")

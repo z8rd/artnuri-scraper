@@ -28,6 +28,7 @@ const globalProgressBar = document.getElementById("global-progress-bar");
 const agentsGrid = document.getElementById("agents-grid");
 const resultsTbody = document.getElementById("results-tbody");
 const passwordInput = document.getElementById("password-input");
+const deleteDataBtn = document.getElementById("delete-data");
 
 // Filter elements
 const searchInput = document.getElementById("search-input");
@@ -96,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Export listeners
     exportCsvBtn.addEventListener("click", () => exportData("csv"));
     exportJsonBtn.addEventListener("click", () => exportData("json"));
+    if (deleteDataBtn) deleteDataBtn.addEventListener("click", handleDeleteData);
     
     // Modal Close
     modalCloseBtn.addEventListener("click", closeModal);
@@ -351,9 +353,11 @@ async function fetchResults() {
         if (scrapedResults.length > 0) {
             exportCsvBtn.disabled = false;
             exportJsonBtn.disabled = false;
+            if (deleteDataBtn) deleteDataBtn.disabled = false;
         } else {
             exportCsvBtn.disabled = true;
             exportJsonBtn.disabled = true;
+            if (deleteDataBtn) deleteDataBtn.disabled = true;
         }
         
     } catch (e) {
@@ -537,4 +541,42 @@ function exportData(format) {
     }
     // Navigate window directly to endpoint to trigger download
     window.location.href = `/api/export?format=${format}&client_id=${clientId}&password=${encodeURIComponent(pwd)}`;
+}
+
+
+// Delete Data API trigger
+async function handleDeleteData() {
+    const pwd = passwordInput ? passwordInput.value.trim() : "";
+    if (!pwd) {
+        alert("비밀번호를 입력해 주세요.");
+        return;
+    }
+    
+    const confirmDelete = confirm("서버에 일시 저장된 회원님의 수집 결과 데이터가 모두 영구 삭제됩니다.\n계속하시겠습니까?");
+    if (!confirmDelete) return;
+    
+    try {
+        const response = await fetch(`/api/results?client_id=${clientId}&password=${encodeURIComponent(pwd)}`, {
+            method: "DELETE"
+        });
+        
+        if (response.status === 401) {
+            alert("비밀번호가 올바르지 않습니다.");
+            return;
+        }
+        
+        if (response.ok) {
+            alert("서버에 저장된 데이터가 안전하게 삭제되었습니다.");
+            scrapedResults = [];
+            filterAndRenderTable();
+            if (deleteDataBtn) deleteDataBtn.disabled = true;
+            exportCsvBtn.disabled = true;
+            exportJsonBtn.disabled = true;
+        } else {
+            const err = await response.json();
+            alert(`데이터 삭제 실패: ${err.detail || "오류"}`);
+        }
+    } catch (e) {
+        alert(`에러 발생: ${e.message}`);
+    }
 }
