@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아트누리 지원사업 병렬 수집 서비스</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styling -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header animate-fade-in">
+            <div class="logo">
+                <i class="fa-solid fa-wand-magic-sparkles logo-icon"></i>
+                <div class="logo-text">
+                    <h1>ARTNURI</h1>
+                    <span>Orchestrator Scraper</span>
+                </div>
+            </div>
+            <div class="global-status-badge" id="global-status-badge">
+                <span class="status-dot idle"></span>
+                <span class="status-txt">서비스 대기 중</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            
+            <!-- Left Panel: Controls & Orchestrator Status -->
+            <section class="left-panel animate-slide-in">
+                <!-- Control Card -->
+                <div class="glass-card control-card">
+                    <h2 class="section-title"><i class="fa-solid fa-sliders"></i> 제어 콘솔</h2>
+                    <p class="section-desc">수집할 검색 키워드를 입력하고 오케스트레이터를 기동하세요.</p>
+                    
+                    <div class="input-group">
+                        <label for="keywords-input">검색 키워드 (쉼표 구분)</label>
+                        <input type="text" id="keywords-input" value="음악, 클래식, 작곡, 미디어아트" placeholder="예: 음악, 미술, 연극">
+                    </div>
+                    
+                    <button id="start-btn" class="primary-btn">
+                        <i class="fa-solid fa-play"></i> 병렬 수집 시작
+                    </button>
+                </div>
+
+                <!-- Global Stats Card -->
+                <div class="glass-card stats-card">
+                    <h2 class="section-title"><i class="fa-solid fa-chart-simple"></i> 전체 진행 현황</h2>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-label">진행 시간</span>
+                            <span class="stat-value" id="stat-time">0.0s</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">발견 항목</span>
+                            <span class="stat-value" id="stat-found">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">수집 항목</span>
+                            <span class="stat-value text-glow" id="stat-scraped">0</span>
+                        </div>
+                    </div>
+                    <div class="global-progress-bar-container">
+                        <div class="global-progress-bar" id="global-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Sub-Agents Grid -->
+            <section class="right-panel animate-slide-in delay-1">
+                <div class="glass-card agents-container">
+                    <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> 서브 에이전트 상태 (Sub-Agents Grid)</h2>
+                    <p class="section-desc">각 키워드에 대해 독립적으로 작동하는 수집기들의 실시간 로그입니다.</p>
+                    
+                    <div class="agents-grid" id="agents-grid">
+                        <!-- Dynamic agent cards will be inserted here -->
+                        <div class="no-agents-placeholder">
+                            <i class="fa-solid fa-robot"></i>
+                            <p>수집을 시작하면 서브 에이전트들이 이곳에 활성화됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Data Explorer Section -->
+        <section class="data-explorer-section animate-fade-in delay-2">
+            <div class="glass-card data-card">
+                <div class="data-card-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-database"></i> 수집된 데이터 탐색기</h2>
+                        <p class="section-desc">아트누리에서 수집 완료된 문화예술 지원사업 공고 목록입니다.</p>
+                    </div>
+                    <div class="export-actions">
+                        <button id="export-csv" class="action-btn" disabled>
+                            <i class="fa-solid fa-file-csv"></i> CSV 내보내기
+                        </button>
+                        <button id="export-json" class="action-btn" disabled>
+                            <i class="fa-solid fa-file-code"></i> JSON 내보내기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-row">
+                    <div class="filter-group search-filter">
+                        <i class="fa-solid fa-magnifying-glass filter-icon"></i>
+                        <input type="text" id="search-input" placeholder="사업명, 주관기관, 본문 검색...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="keyword-filter">
+                            <option value="">모든 키워드</option>
+                            <!-- Dynamic options -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="state-filter">
+                            <option value="">모든 진행상태</option>
+                            <option value="진행중">진행중</option>
+                            <option value="예정">예정</option>
+                            <option value="마감">마감</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-container">
+                    <table id="results-table">
+                        <thead>
+                            <tr>
+                                <th>분야</th>
+                                <th>수집 키워드</th>
+                                <th>상태</th>
+                                <th>공고 제목</th>
+                                <th>주관 기관</th>
+                                <th>마감일</th>
+                                <th style="width: 100px; text-align: center;">상세</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody">
+                            <tr>
+                                <td colspan="7" class="empty-table-msg">
+                                    <i class="fa-solid fa-circle-info"></i> 데이터가 없습니다. 수집을 시작해 주시거나 이전 결과를 불러와 주세요.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal" id="details-modal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3 id="modal-title">공고 제목</h3>
+                <span class="close-btn" id="modal-close-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Grid info -->
+                <div class="modal-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">주관기관</span>
+                        <span class="info-val" id="modal-host">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">지원대상</span>
+                        <span class="info-val" id="modal-target">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">지역</span>
+                        <span class="info-val" id="modal-region">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">신청기간</span>
+                        <span class="info-val" id="modal-period">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">사업유형</span>
+                        <span class="info-val" id="modal-business-type">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">분야 (장르)</span>
+                        <span class="info-val" id="modal-genre">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">조회수</span>
+                        <span class="info-val" id="modal-views">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">수집처</span>
+                        <span class="info-val" id="modal-source-site">-</span>
+                    </div>
+                </div>
+
+                <div class="modal-links-row">
+                    <a href="#" id="modal-apply-link" target="_blank" class="modal-link-btn primary-btn"><i class="fa-solid fa-arrow-up-right-from-square"></i> 신청사이트 바로가기</a>
+                    <a href="#" id="modal-original-link" target="_blank" class="modal-link-btn outline-btn"><i class="fa-solid fa-link"></i> 아트누리 원본 링크</a>
+                </div>
+
+                <!-- Attachment Files -->
+                <div class="modal-section">
+                    <h4 class="modal-section-title"><i class="fa-solid fa-paperclip"></i> 첨부파일</h4>
+                    <ul class="attachment-list" id="modal-files">
+                        <!-- Dynamic files -->
+                    </ul>
+                </div>
+
+                <!-- Description -->
+                <div class="modal-section">
+                    <h4 class="modal-section-title"><i class="fa-solid fa-align-left"></i> 상세 내용</h4>
+                    <div class="modal-desc-box" id="modal-desc">
+                        <!-- Description text -->
+                    </div>
+                </div>
+
+                <!-- Contact -->
+                <div class="modal-section">
+                    <h4 class="modal-section-title"><i class="fa-solid fa-circle-question"></i> 문의 정보</h4>
+                    <div class="contact-box">
+                        <div><strong>문의처:</strong> <span id="modal-contact-name">-</span></div>
+                        <div><strong>연락처:</strong> <span id="modal-contact-phone">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

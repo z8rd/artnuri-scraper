@@ -1,0 +1,18 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Scraped Data (avoid pushing scraped data to Git)
+data/
+data_test/
+
+# Local IDEs
+.vscode/
+.idea/
