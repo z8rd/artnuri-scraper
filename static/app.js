@@ -3,6 +3,7 @@ let isScraping = false;
 let scrapedResults = [];
 let pollInterval = null;
 let currentKeywords = ["음악", "클래식", "작곡", "미디어아트"];
+let selectedState = ""; // Current active status filter
 
 // DOM Elements
 const startBtn = document.getElementById("start-btn");
@@ -18,7 +19,6 @@ const resultsTbody = document.getElementById("results-tbody");
 // Filter elements
 const searchInput = document.getElementById("search-input");
 const keywordFilter = document.getElementById("keyword-filter");
-const stateFilter = document.getElementById("state-filter");
 
 // Export elements
 const exportCsvBtn = document.getElementById("export-csv");
@@ -57,7 +57,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Local Filter listeners
     searchInput.addEventListener("input", filterAndRenderTable);
     keywordFilter.addEventListener("change", filterAndRenderTable);
-    stateFilter.addEventListener("change", filterAndRenderTable);
+    
+    // Status Tabs Filter listeners
+    const tabButtons = document.querySelectorAll("#status-tabs .tab-btn");
+    tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            selectedState = btn.getAttribute("data-state");
+            filterAndRenderTable();
+        });
+    });
     
     // Export listeners
     exportCsvBtn.addEventListener("click", () => exportData("csv"));
@@ -332,7 +342,6 @@ function populateKeywordFilter() {
 function filterAndRenderTable() {
     const query = searchInput.value.trim().toLowerCase();
     const selectedKw = keywordFilter.value;
-    const selectedState = stateFilter.value;
     
     const filtered = scrapedResults.filter(item => {
         // Search text filter

@@ -123,13 +123,13 @@
                             <!-- Dynamic options -->
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <select id="state-filter">
-                            <option value="">모든 진행상태</option>
-                            <option value="진행중">진행중</option>
-                            <option value="예정">예정</option>
-                            <option value="마감">마감</option>
-                        </select>
+                    <div class="filter-group status-tabs-container">
+                        <div class="status-tabs" id="status-tabs">
+                            <button class="tab-btn active" data-state="">전체</button>
+                            <button class="tab-btn" data-state="진행중">진행중</button>
+                            <button class="tab-btn" data-state="예정">예정</button>
+                            <button class="tab-btn" data-state="마감">마감</button>
+                        </div>
                     </div>
                 </div>
 
