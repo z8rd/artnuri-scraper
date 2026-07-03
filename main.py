@@ -6,7 +6,7 @@ import os
 import json
 import pandas as pd
 import io
-from typing import List, Optional
+from typing import List, Optional, Dict
 from orchestrator import Orchestrator
 
 app = FastAPI(title="아트누리 병렬 크롤링 서비스", description="FastAPI + Orchestrator/Sub-Agent 기반 지원사업 수집 API")
@@ -28,36 +28,58 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Initialize Orchestrator
-orchestrator = Orchestrator(data_dir=DATA_DIR)
+# Active orchestrators keyed by client_id (Session Isolation)
+client_orchestrators: Dict[str, Orchestrator] = {}
+
+def get_orchestrator(client_id: str) -> Orchestrator:
+    # Safety check for path traversal
+    if not client_id or "/" in client_id or "\\" in client_id or ".." in client_id:
+        client_id = "default"
+    
+    if client_id not in client_orchestrators:
+        # Create client-specific data directory
+        client_dir = os.path.join(DATA_DIR, client_id)
+        os.makedirs(client_dir, exist_ok=True)
+        client_orchestrators[client_id] = Orchestrator(data_dir=client_dir)
+        
+    return client_orchestrators[client_id]
 
 # Background task wrapper
-async def run_orchestrator_task(keywords: List[str]):
-    await orchestrator.start_scraping(keywords)
+async def run_orchestrator_task(client_id: str, keywords: List[str]):
+    orch = get_orchestrator(client_id)
+    await orch.start_scraping(keywords)
 
 @app.post("/api/scrape")
-async def start_scrape(background_tasks: BackgroundTasks, keywords: Optional[List[str]] = Query(None)):
-    if orchestrator.is_running:
+async def start_scrape(
+    background_tasks: BackgroundTasks, 
+    client_id: str = "default",
+    keywords: Optional[List[str]] = Query(None)
+):
+    orch = get_orchestrator(client_id)
+    if orch.is_running:
         raise HTTPException(status_code=400, detail="이미 크롤링이 진행 중입니다.")
     
     if not keywords:
         keywords = ["음악", "클래식", "작곡", "미디어아트"]
         
-    background_tasks.add_task(run_orchestrator_task, keywords)
+    background_tasks.add_task(run_orchestrator_task, client_id, keywords)
     return {"status": "started", "keywords": keywords}
 
 @app.get("/api/status")
-async def get_status():
-    return orchestrator.get_status()
+async def get_status(client_id: str = "default"):
+    orch = get_orchestrator(client_id)
+    return orch.get_status()
 
 @app.get("/api/results")
 async def get_results(
+    client_id: str = "default",
     keyword: Optional[str] = None,
     state: Optional[str] = None,
     host: Optional[str] = None,
     search: Optional[str] = None
 ):
-    results = orchestrator.load_last_results()
+    orch = get_orchestrator(client_id)
+    results = orch.load_last_results()
     if not results:
         return []
         
@@ -88,8 +110,9 @@ async def get_results(
     return filtered
 
 @app.get("/api/export")
-async def export_results(format: str = "csv"):
-    results = orchestrator.load_last_results()
+async def export_results(format: str = "csv", client_id: str = "default"):
+    orch = get_orchestrator(client_id)
+    results = orch.load_last_results()
     if not results:
         raise HTTPException(status_code=404, detail="내보낼 데이터가 없습니다. 먼저 수집을 진행해 주세요.")
         

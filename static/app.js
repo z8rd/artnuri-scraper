@@ -5,6 +5,18 @@ let pollInterval = null;
 let currentKeywords = ["음악", "클래식", "작곡", "미디어아트"];
 let selectedState = ""; // Current active status filter
 
+// Unique Client Session ID for Multi-user isolation
+const clientId = getOrCreateClientId();
+
+function getOrCreateClientId() {
+    let id = localStorage.getItem("artnuri_client_id");
+    if (!id) {
+        id = 'client_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem("artnuri_client_id", id);
+    }
+    return id;
+}
+
 // DOM Elements
 const startBtn = document.getElementById("start-btn");
 const keywordsInput = document.getElementById("keywords-input");
@@ -100,7 +112,7 @@ async function handleStartScrape() {
     try {
         // Construct query parameters for FastAPI
         const queryParams = keywords.map(kw => `keywords=${encodeURIComponent(kw)}`).join("&");
-        const response = await fetch(`/api/scrape?${queryParams}`, {
+        const response = await fetch(`/api/scrape?client_id=${clientId}&${queryParams}`, {
             method: "POST"
         });
         
@@ -139,7 +151,7 @@ function stopPolling() {
 // Check status API
 async function checkStatus() {
     try {
-        const response = await fetch("/api/status");
+        const response = await fetch(`/api/status?client_id=${clientId}`);
         if (!response.ok) return;
         
         const data = await response.json();
@@ -292,7 +304,7 @@ function renderAgentCards(agents) {
 // Fetch results data from API
 async function fetchResults() {
     try {
-        const response = await fetch("/api/results");
+        const response = await fetch(`/api/results?client_id=${clientId}`);
         if (!response.ok) return;
         
         scrapedResults = await response.json();
@@ -487,5 +499,5 @@ function closeModal() {
 // Export Data API trigger
 function exportData(format) {
     // Navigate window directly to endpoint to trigger download
-    window.location.href = `/api/export?format=${format}`;
+    window.location.href = `/api/export?format=${format}&client_id=${clientId}`;
 }
